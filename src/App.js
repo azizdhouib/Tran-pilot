@@ -42,7 +42,7 @@ function App() {
         >
             <Sidebar currentPage={currentPage} setCurrentPage={setCurrentPage} />
             <main className="flex-1 p-6 overflow-y-auto">
-                <div className="bg-gray-900 bg-opacity-80 p-4 md:p-6 rounded-lg shadow-lg min-h-full text-white">
+                <div className="bg-gray-900 bg-opacity-80 p-4 md:p-6 rounded-lg shadow-lg min-h-full text-black">
                     {renderContent()}
                 </div>
             </main>
