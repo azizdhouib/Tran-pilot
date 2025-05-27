@@ -33,15 +33,13 @@ export default function Chauffeurs() {
   async function supprimerChauffeur(id) {
     if (confirm('Êtes-vous sûr de vouloir supprimer ce chauffeur ? Cette action est irréversible.')) {
       try {
-        // Before deleting the chauffeur, set their vehicule_id to null if they have one
-        // And set the vehicle's status to 'Disponible'
         const { data: chauffeurData, error: fetchError } = await supabase
             .from('chauffeurs')
             .select('vehicule_id')
             .eq('id', id)
             .single();
 
-        if (fetchError && fetchError.code !== 'PGRST116') { // PGRST116 means no rows found (already deleted, etc.)
+        if (fetchError && fetchError.code !== 'PGRST116') {
           throw fetchError;
         }
 
@@ -52,7 +50,6 @@ export default function Chauffeurs() {
               .eq('id', chauffeurData.vehicule_id);
         }
 
-        // Now delete the chauffeur
         const { error: deleteError } = await supabase
             .from('chauffeurs')
             .delete()
@@ -61,7 +58,7 @@ export default function Chauffeurs() {
         if (deleteError) throw deleteError;
 
         alert('Chauffeur supprimé avec succès !');
-        await fetchChauffeurs(); // Refresh the list
+        await fetchChauffeurs();
       } catch (err) {
         console.error('Error deleting chauffeur:', err);
         alert('Erreur lors de la suppression du chauffeur : ' + err.message);
@@ -71,14 +68,13 @@ export default function Chauffeurs() {
 
   function handleEditChauffeur(chauffeur) {
     setChauffeurToEdit(chauffeur);
-    setShowAddForm(true); // Open the form in edit mode
+    setShowAddForm(true);
   }
 
-  // This function will be called when a chauffeur is successfully added/updated
   const handleChauffeurSaved = () => {
-    fetchChauffeurs(); // Re-fetch the list to show new/updated data
-    setShowAddForm(false); // Close the form
-    setChauffeurToEdit(null); // Clear the edit state
+    fetchChauffeurs();
+    setShowAddForm(false);
+    setChauffeurToEdit(null);
   };
 
   if (selectedChauffeurId) {
@@ -89,7 +85,7 @@ export default function Chauffeurs() {
   }
 
   return (
-      <div className="p-4 md:p-6 bg-white rounded shadow mx-auto"> {/* Added bg-white, rounded, shadow, mx-auto for consistent styling */}
+      <div className="p-4 md:p-6 bg-white rounded shadow mx-auto">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4">
           <h2 className="text-xl md:text-2xl font-bold mb-3 sm:mb-0">Gestion des Chauffeurs</h2>
           <button
@@ -100,7 +96,6 @@ export default function Chauffeurs() {
           </button>
         </div>
 
-        {/* Render ChauffeurForm as a modal if showAddForm is true */}
         {showAddForm && (
             <ChauffeurForm
                 chauffeur={chauffeurToEdit}
@@ -112,21 +107,21 @@ export default function Chauffeurs() {
         {loading ? (
             <p className="text-center py-8 text-gray-600">Chargement des chauffeurs...</p>
         ) : (
-            <div className="overflow-x-auto"> {/* This class handles horizontal scrolling for the table */}
+            <div className="overflow-x-auto">
               <table className="min-w-full bg-white border border-gray-200 rounded-lg shadow-sm">
                 <thead className="bg-gray-100">
                 <tr>
                   <th className="px-2 py-3 border-b-2 border-gray-200 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Photo</th>
                   <th className="px-2 py-3 border-b-2 border-gray-200 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Prénom Nom</th>
                   <th className="px-2 py-3 border-b-2 border-gray-200 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Téléphone</th>
-                  <th className="px-2 py-3 border-b-2 border-gray-200 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Email</th>
+                  {/* Removed Email Header */}
                   <th className="px-2 py-3 border-b-2 border-gray-200 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Actions</th>
                 </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
                 {chauffeurs.length === 0 ? (
                     <tr>
-                      <td colSpan="5" className="px-4 py-4 text-center text-gray-500 text-sm">
+                      <td colSpan="4" className="px-4 py-4 text-center text-gray-500 text-sm"> {/* Changed colSpan from 5 to 4 */}
                         Aucun chauffeur trouvé. Cliquez sur "+ Nouveau Chauffeur" pour en ajouter un.
                       </td>
                     </tr>
@@ -153,7 +148,7 @@ export default function Chauffeurs() {
                             {c.prenom} {c.nom}
                           </td>
                           <td className="px-2 py-2 text-gray-800 text-sm sm:text-base">{c.telephone || 'N/A'}</td>
-                          <td className="px-2 py-2 text-gray-800 text-sm sm:text-base">{c.email || 'N/A'}</td>
+                          {/* Removed Email Data Cell */}
                           <td className="px-2 py-2 flex flex-col sm:flex-row gap-2 items-center">
                             <button
                                 onClick={() => handleEditChauffeur(c)}
