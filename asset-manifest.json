@@ -1,15 +1,15 @@
 {
   "files": {
-    "main.css": "/Tran-pilot/static/css/main.d192d50f.css",
-    "main.js": "/Tran-pilot/static/js/main.cafea483.js",
+    "main.css": "/Tran-pilot/static/css/main.e7e57a3f.css",
+    "main.js": "/Tran-pilot/static/js/main.bc28c894.js",
     "static/js/198.ed590996.chunk.js": "/Tran-pilot/static/js/198.ed590996.chunk.js",
     "index.html": "/Tran-pilot/index.html",
-    "main.d192d50f.css.map": "/Tran-pilot/static/css/main.d192d50f.css.map",
-    "main.cafea483.js.map": "/Tran-pilot/static/js/main.cafea483.js.map",
+    "main.e7e57a3f.css.map": "/Tran-pilot/static/css/main.e7e57a3f.css.map",
+    "main.bc28c894.js.map": "/Tran-pilot/static/js/main.bc28c894.js.map",
     "198.ed590996.chunk.js.map": "/Tran-pilot/static/js/198.ed590996.chunk.js.map"
   },
   "entrypoints": [
-    "static/css/main.d192d50f.css",
-    "static/js/main.cafea483.js"
+    "static/css/main.e7e57a3f.css",
+    "static/js/main.bc28c894.js"
   ]
 }
