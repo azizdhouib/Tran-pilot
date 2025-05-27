@@ -4,16 +4,16 @@ import { PDFDownloadLink } from '@react-pdf/renderer';
 import ContestationPdfDocument from './ContestationPdfDocument';
 
 export default function Amandes() {
-    const [amandes, setAmandes] = useState([]);
-    const [chauffeurs, setChauffeurs] = useState([]); // Liste de tous les chauffeurs
-    const [vehicules, setVehicules] = useState([]); // Liste des véhicules pour le sélecteur de plaque
+    const [amandes, setAmandes] = useState([]); // Keeps 'amandes'
+    const [chauffeurs, setChauffeurs] = useState([]);
+    const [vehicules, setVehicules] = useState([]);
 
     // State for the form inputs
-    const [chauffeurId, setChauffeurId] = useState(''); // Le chauffeur désigné par l'amande
+    const [chauffeurId, setChauffeurId] = useState('');
     const [dateInfraction, setDateInfraction] = useState('');
     const [lieu, setLieu] = useState('');
     const [montant, setMontant] = useState('');
-    const [vehiculePlaque, setVehiculePlaque] = useState(''); // La plaque du véhicule associée à l'amende
+    const [vehiculePlaque, setVehiculePlaque] = useState('');
     const [natureInfraction, setNatureInfraction] = useState('');
 
     const [isEditing, setIsEditing] = useState(false);
@@ -27,14 +27,10 @@ export default function Amandes() {
     }, []);
 
     async function fetchData() {
-        await fetchAmandes();
+        await fetchAmandes(); // Keeps 'fetchAmandes'
         await fetchChauffeurs();
         await fetchVehicules();
 
-        // NOUVEAU : Définir le chauffeur désignant
-        // Ici, vous devrez implémenter la logique pour récupérer le profil du gérant/propriétaire.
-        // Pour cet exemple, nous allons prendre le premier chauffeur trouvé comme "désignant".
-        // C'EST UNE SIMPLIFICATION, à adapter selon votre gestion d'utilisateurs.
         const { data: gerantData, error: gerantError } = await supabase.from('chauffeurs').select('*').limit(1);
         if (gerantData && gerantData.length > 0) {
             setChauffeurDesignant(gerantData[0]);
@@ -43,9 +39,9 @@ export default function Amandes() {
         }
     }
 
-    async function fetchAmandes() {
+    async function fetchAmandes() { // Keeps 'fetchAmandes'
         const { data, error } = await supabase
-            .from('amandes')
+            .from('amendes') // !!! ONLY THIS LINE CHANGED to 'amendes' !!!
             .select(`
                 *,
                  chauffeurs (
@@ -63,7 +59,7 @@ export default function Amandes() {
                 )
             `)
             .order('date_infraction', { ascending: false });
-        if (!error) setAmandes(data);
+        if (!error) setAmandes(data); // Keeps 'setAmandes'
         else console.error('Error fetching fines:', error);
     }
 
@@ -82,7 +78,7 @@ export default function Amandes() {
         }
     }
 
-    async function ajouterOuModifierAmande(e) {
+    async function ajouterOuModifierAmande(e) { // Keeps 'ajouterOuModifierAmande'
         e.preventDefault();
         const payload = {
             chauffeur_id: chauffeurId || null,
@@ -95,33 +91,33 @@ export default function Amandes() {
 
         if (isEditing && editId) {
             const { error } = await supabase
-                .from('amandes')
+                .from('amendes') // !!! ONLY THIS LINE CHANGED to 'amendes' !!!
                 .update(payload)
                 .eq('id', editId);
             if (!error) {
                 resetForm();
-                fetchAmandes();
+                fetchAmandes(); // Keeps 'fetchAmandes'
             } else console.error('Error updating fine:', error);
         } else {
             const { error } = await supabase
-                .from('amandes')
+                .from('amendes') // !!! ONLY THIS LINE CHANGED to 'amendes' !!!
                 .insert(payload);
             if (!error) {
                 resetForm();
-                fetchAmandes();
+                fetchAmandes(); // Keeps 'fetchAmandes'
             } else console.error('Error adding fine:', error);
         }
     }
 
-    async function supprimerAmande(id) {
+    async function supprimerAmande(id) { // Keeps 'supprimerAmande'
         const confirmation = window.confirm('Supprimer cette amande ?');
         if (!confirmation) return;
-        const { error } = await supabase.from('amandes').delete().eq('id', id);
-        if (!error) fetchAmandes();
+        const { error } = await supabase.from('amendes').delete().eq('id', id); // !!! ONLY THIS LINE CHANGED to 'amendes' !!!
+        if (!error) fetchAmandes(); // Keeps 'fetchAmandes'
         else console.error('Error deleting fine:', error);
     }
 
-    function modifierAmande(amande) {
+    function modifierAmande(amande) { // Keeps 'modifierAmande' and 'amande' parameter
         setChauffeurId(amande.chauffeur_id || '');
         setDateInfraction(amande.date_infraction);
         setLieu(amande.lieu);
@@ -235,7 +231,7 @@ export default function Amandes() {
                     </tr>
                     </thead>
                     <tbody>
-                    {amandes.map(amande => (
+                    {amandes.map(amande => ( // Keeps 'amandes.map(amande => ...)'
                         <tr key={amande.id}>
                             <td className="border px-2 py-2 text-xs sm:px-4 sm:py-2 sm:text-base">
                                 {amande.chauffeurs ? `${amande.chauffeurs.prenom} ${amande.chauffeurs.nom}` : 'N/A'}
