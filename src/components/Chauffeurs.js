@@ -89,7 +89,7 @@ export default function Chauffeurs() {
   }
 
   return (
-      <div className="p-6">
+      <div className="p-4 md:p-6"> {/* Adjusted padding for smaller screens */}
         <h2 className="text-xl font-bold mb-4">Gestion des Chauffeurs</h2>
 
         <div className="mb-6 flex justify-end">
@@ -113,7 +113,7 @@ export default function Chauffeurs() {
         {loading ? (
             <p>Chargement des chauffeurs...</p>
         ) : (
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto"> {/* This class handles horizontal scrolling for the table */}
               <table className="min-w-full bg-white border border-gray-200 rounded-lg shadow-sm">
                 <thead className="bg-gray-100">
                 <tr>

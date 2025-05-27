@@ -15,12 +15,11 @@ export default function Amandes() {
     const [montant, setMontant] = useState('');
     const [vehiculePlaque, setVehiculePlaque] = useState(''); // La plaque du véhicule associée à l'amende
     const [natureInfraction, setNatureInfraction] = useState('');
-    // const [contestationEnvoyee, setContestationEnvoyee] = useState(false); // Champ supprimé
 
     const [isEditing, setIsEditing] = useState(false);
     const [editId, setEditId] = useState(null);
 
-    // **** NOUVEAU : État pour le chauffeur désignant (le gérant/propriétaire) ****
+    // NOUVEAU : État pour le chauffeur désignant (le gérant/propriétaire)
     const [chauffeurDesignant, setChauffeurDesignant] = useState(null);
 
     useEffect(() => {
@@ -30,9 +29,9 @@ export default function Amandes() {
     async function fetchData() {
         await fetchAmandes();
         await fetchChauffeurs();
-        await fetchVehicules(); // Assurez-vous que cette fonction s'exécute correctement
+        await fetchVehicules();
 
-        // **** NOUVEAU : Définir le chauffeur désignant ****
+        // NOUVEAU : Définir le chauffeur désignant
         // Ici, vous devrez implémenter la logique pour récupérer le profil du gérant/propriétaire.
         // Pour cet exemple, nous allons prendre le premier chauffeur trouvé comme "désignant".
         // C'EST UNE SIMPLIFICATION, à adapter selon votre gestion d'utilisateurs.
@@ -46,7 +45,7 @@ export default function Amandes() {
 
     async function fetchAmandes() {
         const { data, error } = await supabase
-            .from('amendes')
+            .from('amandes')
             .select(`
                 *,
                  chauffeurs (
@@ -57,10 +56,10 @@ export default function Amandes() {
                     adresse_cp,
                     adresse_ville,
                     permis_numero,
-                    date_naissance,       
-                    lieu_naissance,       
-                    permis_delivrance_date, 
-                    permis_delivrance_lieu 
+                    date_naissance,
+                    lieu_naissance,
+                    permis_delivrance_date,
+                    permis_delivrance_lieu
                 )
             `)
             .order('date_infraction', { ascending: false });
@@ -76,10 +75,9 @@ export default function Amandes() {
 
     async function fetchVehicules() {
         const { data, error } = await supabase.from('vehicules').select('id, plaque, modele');
-        // CORRECTION ICI : la condition `if (!!error)` a été changée en `if (error)`
-        if (error) { // Si il y a une erreur, on la log
+        if (error) {
             console.error('Error fetching vehicles:', error);
-        } else { // Sinon, on met à jour le state
+        } else {
             setVehicules(data);
         }
     }
@@ -91,14 +89,13 @@ export default function Amandes() {
             date_infraction: dateInfraction,
             lieu: lieu,
             montant: parseFloat(montant),
-            vehicule_plaque: vehiculePlaque || null, // S'assure que la plaque sélectionnée est bien passée
+            vehicule_plaque: vehiculePlaque || null,
             nature_infraction: natureInfraction,
-            // contestation_envoyee: contestationEnvoyee, // Champ supprimé du payload
         };
 
         if (isEditing && editId) {
             const { error } = await supabase
-                .from('amendes')
+                .from('amandes')
                 .update(payload)
                 .eq('id', editId);
             if (!error) {
@@ -107,7 +104,7 @@ export default function Amandes() {
             } else console.error('Error updating fine:', error);
         } else {
             const { error } = await supabase
-                .from('amendes')
+                .from('amandes')
                 .insert(payload);
             if (!error) {
                 resetForm();
@@ -119,7 +116,7 @@ export default function Amandes() {
     async function supprimerAmande(id) {
         const confirmation = window.confirm('Supprimer cette amande ?');
         if (!confirmation) return;
-        const { error } = await supabase.from('amendes').delete().eq('id', id);
+        const { error } = await supabase.from('amandes').delete().eq('id', id);
         if (!error) fetchAmandes();
         else console.error('Error deleting fine:', error);
     }
@@ -129,9 +126,8 @@ export default function Amandes() {
         setDateInfraction(amande.date_infraction);
         setLieu(amande.lieu);
         setMontant(amande.montant.toString());
-        setVehiculePlaque(amande.vehicule_plaque || ''); // La valeur de la plaque est récupérée ici
+        setVehiculePlaque(amande.vehicule_plaque || '');
         setNatureInfraction(amande.nature_infraction);
-        // setContestationEnvoyee(amande.contestation_envoyee); // Supprimé
         setEditId(amande.id);
         setIsEditing(true);
     }
@@ -143,26 +139,20 @@ export default function Amandes() {
         setMontant('');
         setVehiculePlaque('');
         setNatureInfraction('');
-        // setContestationEnvoyee(false); // Supprimé
         setEditId(null);
         setIsEditing(false);
     }
 
-    // Fonction `getStatutClass` est maintenant obsolète car le champ est supprimé
-    // const getStatutClass = (contested) => {
-    //     return contested ? 'bg-blue-100 text-blue-700' : 'bg-orange-100 text-orange-700';
-    // };
-
     return (
-        <div className="p-6 bg-white rounded shadow">
-            <h2 className="text-xl font-semibold mb-4">Gestion des Amendes</h2>
+        <div className="p-4 md:p-6 bg-white rounded shadow mx-auto">
+            <h2 className="text-xl md:text-2xl font-semibold mb-4">Gestion des Amendes</h2>
 
-            <h3 className="text-lg font-semibold mt-6 mb-2">{isEditing ? 'Modifier une Amande' : 'Ajouter une Nouvelle Amande'}</h3>
-            <form onSubmit={ajouterOuModifierAmande} className="mb-6 flex flex-wrap gap-4 items-end">
+            <h3 className="text-lg md:text-xl font-semibold mt-6 mb-2">{isEditing ? 'Modifier une Amande' : 'Ajouter une Nouvelle Amande'}</h3>
+            <form onSubmit={ajouterOuModifierAmande} className="mb-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 items-end">
                 <select
                     value={chauffeurId}
                     onChange={e => setChauffeurId(e.target.value)}
-                    className="border px-3 py-2 rounded-md"
+                    className="border px-3 py-2 rounded-md w-full"
                 >
                     <option value="">Sélectionner un Chauffeur</option>
                     {chauffeurs.map(chauffeur => (
@@ -174,14 +164,14 @@ export default function Amandes() {
                     placeholder="Date Infraction"
                     value={dateInfraction}
                     onChange={e => setDateInfraction(e.target.value)}
-                    className="border px-3 py-2 rounded-md"
+                    className="border px-3 py-2 rounded-md w-full"
                     required
                 />
                 <input
                     placeholder="Lieu de l'infraction"
                     value={lieu}
                     onChange={e => setLieu(e.target.value)}
-                    className="border px-3 py-2 rounded-md"
+                    className="border px-3 py-2 rounded-md w-full"
                     required
                 />
                 <input
@@ -189,15 +179,14 @@ export default function Amandes() {
                     placeholder="Montant (€)"
                     value={montant}
                     onChange={e => setMontant(e.target.value)}
-                    className="border px-3 py-2 rounded-md"
+                    className="border px-3 py-2 rounded-md w-full"
                     step="0.01"
                     required
                 />
-                {/* SELECTEUR DE PLAQUE : MAINTENANT UTILISE VEHICULES POUR OBTENIR LES PLAQUES */}
                 <select
                     value={vehiculePlaque}
                     onChange={e => setVehiculePlaque(e.target.value)}
-                    className="border px-3 py-2 rounded-md"
+                    className="border px-3 py-2 rounded-md w-full"
                 >
                     <option value="">Sélectionner une Plaque (facultatif)</option>
                     {vehicules.map(v => (
@@ -208,105 +197,86 @@ export default function Amandes() {
                     placeholder="Nature de l'infraction"
                     value={natureInfraction}
                     onChange={e => setNatureInfraction(e.target.value)}
-                    className="border px-3 py-2 rounded-md"
+                    className="border px-3 py-2 rounded-md w-full"
                 />
-                {/* CHECKBOX "Contestation Envoyée" SUPPRIMÉE */}
-                {/*
-                <label className="flex items-center gap-2">
-                    <input
-                        type="checkbox"
-                        checked={contestationEnvoyee}
-                        onChange={e => setContestationEnvoyee(e.target.checked)}
-                        className="form-checkbox h-4 w-4 text-blue-600"
-                    />
-                    Contestation Envoyée
-                </label>
-                */}
 
-                <button
-                    type="submit"
-                    className={`text-white font-medium px-4 py-2 rounded-md shadow ${
-                        isEditing ? 'bg-yellow-500 hover:bg-yellow-600' : 'bg-blue-600 hover:bg-blue-700'
-                    }`}
-                >
-                    {isEditing ? 'Modifier amande' : '+ Nouvelle Amande'}
-                </button>
-                {isEditing && (
+                <div className="col-span-1 sm:col-span-2 lg:col-span-3 flex flex-col sm:flex-row gap-3 mt-2">
                     <button
-                        type="button"
-                        onClick={resetForm}
-                        className="bg-gray-300 hover:bg-gray-400 text-black font-medium px-4 py-2 rounded-md shadow"
+                        type="submit"
+                        className={`text-white font-medium px-4 py-2 rounded-md shadow w-full sm:w-auto ${
+                            isEditing ? 'bg-yellow-500 hover:bg-yellow-600' : 'bg-blue-600 hover:bg-blue-700'
+                        }`}
                     >
-                        Annuler
+                        {isEditing ? 'Modifier amande' : '+ Nouvelle Amande'}
                     </button>
-                )}
+                    {isEditing && (
+                        <button
+                            type="button"
+                            onClick={resetForm}
+                            className="bg-gray-300 hover:bg-gray-400 text-black font-medium px-4 py-2 rounded-md shadow w-full sm:w-auto"
+                        >
+                            Annuler
+                        </button>
+                    )}
+                </div>
             </form>
 
-            <table className="min-w-full bg-gray-50 border border-gray-200">
-                <thead>
-                <tr>
-                    <th className="py-2 px-4 border">Chauffeur Désigné</th>
-                    <th className="py-2 px-4 border">Date</th>
-                    <th className="py-2 px-4 border">Lieu</th>
-                    <th className="py-2 px-4 border">Montant</th>
-                    <th className="py-2 px-4 border">Plaque Véhicule</th>
-                    <th className="py-2 px-4 border">Nature Infraction</th>
-                    {/* EN-TÊTE DE COLONNE "Contestée" SUPPRIMÉE */}
-                    {/* <th className="py-2 px-4 border">Contestée</th> */}
-                    <th className="py-2 px-4 border">Actions</th>
-                </tr>
-                </thead>
-                <tbody>
-                {amandes.map(amande => (
-                    <tr key={amande.id}>
-                        <td className="border px-4 py-2">
-                            {amande.chauffeurs ? `${amande.chauffeurs.prenom} ${amande.chauffeurs.nom}` : 'N/A'}
-                        </td>
-                        <td className="border px-4 py-2">{amande.date_infraction}</td>
-                        <td className="border px-4 py-2">{amande.lieu}</td>
-                        <td className="border px-4 py-2">{amande.montant.toFixed(2)} €</td>
-                        <td className="border px-4 py-2">{amande.vehicule_plaque || 'N/A'}</td>
-                        <td className="border px-4 py-2">{amande.nature_infraction || 'N/A'}</td>
-                        {/* CELLULE "Contestée" SUPPRIMÉE */}
-                        {/*
-                        <td className="border px-4 py-2">
-                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatutClass(amande.contestation_envoyee)}`}>
-                            {amande.contestation_envoyee ? 'Oui' : 'Non'}
-                            </span>
-                        </td>
-                        */}
-                        <td className="border px-4 py-2 flex gap-2">
-                            <button
-                                onClick={() => modifierAmande(amande)}
-                                className="bg-yellow-500 hover:bg-yellow-600 text-white px-3 py-1 rounded-md text-sm"
-                            >
-                                Modifier
-                            </button>
-                            <button
-                                onClick={() => supprimerAmande(amande.id)}
-                                className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded-md text-sm"
-                            >
-                                Supprimer
-                            </button>
-                            {/* PDF Generation Button - Pass both chauffeurs if available */}
-                            {chauffeurDesignant && amande.chauffeurs && amande.vehicule_plaque && (
-                                <PDFDownloadLink
-                                    document={<ContestationPdfDocument
-                                        amande={amande}
-                                        chauffeurDesignant={chauffeurDesignant} // Le gérant/propriétaire
-                                        chauffeurDesigne={amande.chauffeurs} // Le chauffeur de l'amande
-                                    />}
-                                    fileName={`designation_${amande.date_infraction}_${amande.chauffeurs.nom}.pdf`}
-                                    className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded-md text-sm flex items-center justify-center"
-                                >
-                                    {({ loading }) => (loading ? 'Génération...' : 'Désigner PDF')}
-                                </PDFDownloadLink>
-                            )}
-                        </td>
+            <div className="overflow-x-auto">
+                <table className="min-w-full bg-gray-50 border border-gray-200">
+                    <thead>
+                    <tr>
+                        <th className="py-2 px-2 sm:px-4 border text-left text-xs sm:text-sm">Chauffeur Désigné</th>
+                        <th className="py-2 px-2 sm:px-4 border text-left text-xs sm:text-sm">Date</th>
+                        <th className="py-2 px-2 sm:px-4 border text-left text-xs sm:text-sm">Lieu</th>
+                        <th className="py-2 px-2 sm:px-4 border text-left text-xs sm:text-sm">Montant</th>
+                        <th className="py-2 px-2 sm:px-4 border text-left text-xs sm:text-sm">Plaque Véhicule</th>
+                        <th className="py-2 px-2 sm:px-4 border text-left text-xs sm:text-sm">Nature Infraction</th>
+                        <th className="py-2 px-2 sm:px-4 border text-left text-xs sm:text-sm">Actions</th>
                     </tr>
-                ))}
-                </tbody>
-            </table>
+                    </thead>
+                    <tbody>
+                    {amandes.map(amande => (
+                        <tr key={amande.id}>
+                            <td className="border px-2 py-2 text-xs sm:px-4 sm:py-2 sm:text-base">
+                                {amande.chauffeurs ? `${amande.chauffeurs.prenom} ${amande.chauffeurs.nom}` : 'N/A'}
+                            </td>
+                            <td className="border px-2 py-2 text-xs sm:px-4 sm:py-2 sm:text-base">{amande.date_infraction}</td>
+                            <td className="border px-2 py-2 text-xs sm:px-4 sm:py-2 sm:text-base">{amande.lieu}</td>
+                            <td className="border px-2 py-2 text-xs sm:px-4 sm:py-2 sm:text-base">{amande.montant.toFixed(2)} €</td>
+                            <td className="border px-2 py-2 text-xs sm:px-4 sm:py-2 sm:text-base">{amande.vehicule_plaque || 'N/A'}</td>
+                            <td className="border px-2 py-2 text-xs sm:px-4 sm:py-2 sm:text-base">{amande.nature_infraction || 'N/A'}</td>
+                            <td className="border px-2 py-2 flex flex-col gap-2 sm:flex-row sm:gap-2">
+                                <button
+                                    onClick={() => modifierAmande(amande)}
+                                    className="bg-yellow-500 hover:bg-yellow-600 text-white px-2 py-1 rounded-md text-xs sm:text-sm w-full"
+                                >
+                                    Modifier
+                                </button>
+                                <button
+                                    onClick={() => supprimerAmande(amande.id)}
+                                    className="bg-red-500 hover:bg-red-600 text-white px-2 py-1 rounded-md text-xs sm:text-sm w-full"
+                                >
+                                    Supprimer
+                                </button>
+                                {chauffeurDesignant && amande.chauffeurs && amande.vehicule_plaque && (
+                                    <PDFDownloadLink
+                                        document={<ContestationPdfDocument
+                                            amande={amande}
+                                            chauffeurDesignant={chauffeurDesignant}
+                                            chauffeurDesigne={amande.chauffeurs}
+                                        />}
+                                        fileName={`designation_${amande.date_infraction}_${amande.chauffeurs.nom}.pdf`}
+                                        className="bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 rounded-md text-xs sm:text-sm flex items-center justify-center w-full"
+                                    >
+                                        {({ loading }) => (loading ? 'Génération...' : 'Désigner PDF')}
+                                    </PDFDownloadLink>
+                                )}
+                            </td>
+                        </tr>
+                    ))}
+                    </tbody>
+                </table>
+            </div>
         </div>
     );
 }
