@@ -89,13 +89,12 @@ export default function Chauffeurs() {
   }
 
   return (
-      <div className="p-4 md:p-6"> {/* Adjusted padding for smaller screens */}
-        <h2 className="text-xl font-bold mb-4">Gestion des Chauffeurs</h2>
-
-        <div className="mb-6 flex justify-end">
+      <div className="p-4 md:p-6 bg-white rounded shadow mx-auto"> {/* Added bg-white, rounded, shadow, mx-auto for consistent styling */}
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4">
+          <h2 className="text-xl md:text-2xl font-bold mb-3 sm:mb-0">Gestion des Chauffeurs</h2>
           <button
               onClick={() => { setShowAddForm(true); setChauffeurToEdit(null); }}
-              className="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-md shadow-md transition duration-300 ease-in-out"
+              className="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-md shadow-md transition duration-300 ease-in-out w-full sm:w-auto text-sm sm:text-base"
           >
             + Nouveau Chauffeur
           </button>
@@ -111,60 +110,60 @@ export default function Chauffeurs() {
         )}
 
         {loading ? (
-            <p>Chargement des chauffeurs...</p>
+            <p className="text-center py-8 text-gray-600">Chargement des chauffeurs...</p>
         ) : (
             <div className="overflow-x-auto"> {/* This class handles horizontal scrolling for the table */}
               <table className="min-w-full bg-white border border-gray-200 rounded-lg shadow-sm">
                 <thead className="bg-gray-100">
                 <tr>
-                  <th className="px-4 py-3 border-b-2 border-gray-200 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Photo</th>
-                  <th className="px-4 py-3 border-b-2 border-gray-200 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Prénom Nom</th>
-                  <th className="px-4 py-3 border-b-2 border-gray-200 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Téléphone</th>
-                  <th className="px-4 py-3 border-b-2 border-gray-200 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Email</th>
-                  <th className="px-4 py-3 border-b-2 border-gray-200 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Actions</th>
+                  <th className="px-2 py-3 border-b-2 border-gray-200 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Photo</th>
+                  <th className="px-2 py-3 border-b-2 border-gray-200 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Prénom Nom</th>
+                  <th className="px-2 py-3 border-b-2 border-gray-200 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Téléphone</th>
+                  <th className="px-2 py-3 border-b-2 border-gray-200 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Email</th>
+                  <th className="px-2 py-3 border-b-2 border-gray-200 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Actions</th>
                 </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
                 {chauffeurs.length === 0 ? (
                     <tr>
-                      <td colSpan="5" className="px-4 py-4 text-center text-gray-500">
+                      <td colSpan="5" className="px-4 py-4 text-center text-gray-500 text-sm">
                         Aucun chauffeur trouvé. Cliquez sur "+ Nouveau Chauffeur" pour en ajouter un.
                       </td>
                     </tr>
                 ) : (
                     chauffeurs.map(c => (
                         <tr key={c.id} className="hover:bg-gray-50">
-                          <td className="px-4 py-2 text-center">
+                          <td className="px-2 py-2 text-center">
                             {c.photo_profil ? (
                                 <img
                                     src={c.photo_profil}
                                     alt="Profil"
-                                    className="w-10 h-10 object-cover rounded-full mx-auto border border-gray-200"
+                                    className="w-8 h-8 md:w-10 md:h-10 object-cover rounded-full mx-auto border border-gray-200"
                                 />
                             ) : (
-                                <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center text-xs text-gray-500 mx-auto">
+                                <div className="w-8 h-8 md:w-10 md:h-10 bg-gray-200 rounded-full flex items-center justify-center text-xs text-gray-500 mx-auto">
                                   N/A
                                 </div>
                             )}
                           </td>
                           <td
                               onClick={() => setSelectedChauffeurId(c.id)}
-                              className="px-4 py-2 text-blue-600 hover:underline cursor-pointer font-medium"
+                              className="px-2 py-2 text-blue-600 hover:underline cursor-pointer font-medium text-sm sm:text-base"
                           >
                             {c.prenom} {c.nom}
                           </td>
-                          <td className="px-4 py-2 text-gray-800">{c.telephone || 'N/A'}</td>
-                          <td className="px-4 py-2 text-gray-800">{c.email || 'N/A'}</td>
-                          <td className="px-4 py-2 space-x-2 flex items-center">
+                          <td className="px-2 py-2 text-gray-800 text-sm sm:text-base">{c.telephone || 'N/A'}</td>
+                          <td className="px-2 py-2 text-gray-800 text-sm sm:text-base">{c.email || 'N/A'}</td>
+                          <td className="px-2 py-2 flex flex-col sm:flex-row gap-2 items-center">
                             <button
                                 onClick={() => handleEditChauffeur(c)}
-                                className="bg-yellow-500 hover:bg-yellow-600 text-white px-3 py-1 rounded-md text-sm transition duration-150 ease-in-out"
+                                className="bg-yellow-500 hover:bg-yellow-600 text-white px-2 py-1 rounded-md text-xs sm:text-sm w-full"
                             >
                               Modifier
                             </button>
                             <button
                                 onClick={() => supprimerChauffeur(c.id)}
-                                className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded-md text-sm transition duration-150 ease-in-out"
+                                className="bg-red-500 hover:bg-red-600 text-white px-2 py-1 rounded-md text-xs sm:text-sm w-full"
                             >
                               Supprimer
                             </button>
