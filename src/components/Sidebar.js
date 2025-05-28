@@ -1,4 +1,4 @@
-import React, { useState } from 'react'; // Import useState
+import React, { useState } from 'react';
 
 export default function Sidebar({ currentPage, setCurrentPage }) {
     // State to control sidebar visibility on smaller screens
@@ -9,6 +9,7 @@ export default function Sidebar({ currentPage, setCurrentPage }) {
         { label: 'Véhicules', key: 'vehicules' },
         { label: 'Affectations', key: 'affectations' },
         { label: 'Amendes', key: 'amandes' },
+        { label: 'Paiements', key: 'paiements' }, // Added the new link here
     ];
 
     return (
@@ -44,9 +45,6 @@ export default function Sidebar({ currentPage, setCurrentPage }) {
 
             {/* Sidebar content */}
             <div
-                // Initial width for larger screens (md:w-48)
-                // Hidden by default on small screens (hidden)
-                // Visible and fixed when open on small screens (isSidebarOpen ? 'translate-x-0' : '-translate-x-full')
                 className={`
                     w-48 min-h-screen bg-gray-800 text-white p-4
                     fixed inset-y-0 left-0 z-50

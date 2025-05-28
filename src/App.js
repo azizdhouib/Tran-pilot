@@ -5,6 +5,7 @@ import Affectations from './components/Affectations';
 import ChauffeurProfil from './components/ChauffeurProfil';
 import Amandes from './components/Amandes';
 import Sidebar from './components/Sidebar';
+import Paiements from './components/Paiements';
 
 // --- IMPORTANT: Replace [your-project-ref] with your actual Supabase project ID ---
 const SUPABASE_BACKGROUND_IMAGE_URL = 'https://itywlbigsmahjxekhrcw.supabase.co/storage/v1/object/public/chauffeur-media/photo_couverture/3409297.jpg';
@@ -30,6 +31,8 @@ function App() {
             return <ChauffeurProfil chauffeurId={selectedChauffeurId} retour={retourListe} />;
         } else if (currentPage === 'chauffeurs') {
             return <Chauffeurs onSelectChauffeur={setSelectedChauffeurId} />;
+        } else if (currentPage === 'paiements') {
+            return <Paiements />;
         }
         // Fallback for any unhandled currentPage values
         return <Chauffeurs onSelectChauffeur={setSelectedChauffeurId} />;
