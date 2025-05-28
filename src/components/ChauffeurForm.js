@@ -113,21 +113,21 @@ export default function ChauffeurForm({ chauffeur, onClose, onSave, currentUserI
     }
 
     return (
-        <div className="relative p-4 sm:p-6 bg-white rounded-lg shadow-xl w-full max-w-lg mx-auto my-8">
+        <div className="relative p-4 sm:p-6 lg:p-8 bg-white rounded-lg shadow-xl w-full max-w-lg mx-auto my-4 sm:my-8">
             <h2 className="text-xl sm:text-2xl font-semibold text-gray-800 mb-6 text-center">
                 {chauffeur ? 'Modifier le Chauffeur' : 'Ajouter un Nouveau Chauffeur'}
             </h2>
             <button
                 type="button"
                 onClick={onClose}
-                className="absolute top-3 right-3 text-gray-500 hover:text-gray-700 text-2xl font-bold"
+                className="absolute top-3 right-3 text-gray-500 hover:text-gray-700 text-2xl font-bold p-2"
             >
                 &times;
             </button>
 
-            <div className="max-h-[70vh] overflow-y-auto pr-2"> {/* Added overflow for scroll */}
+            <div className="max-h-[calc(100vh-160px)] overflow-y-auto pr-3 custom-scrollbar">
                 <form onSubmit={handleSubmit}>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
                         <div className="col-span-1">
                             <label htmlFor="prenom" className="block text-sm font-medium text-gray-700">Prénom</label>
                             <input
@@ -136,7 +136,7 @@ export default function ChauffeurForm({ chauffeur, onClose, onSave, currentUserI
                                 value={prenom}
                                 onChange={e => setPrenom(e.target.value)}
                                 required
-                                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm sm:text-base"
                             />
                         </div>
                         <div className="col-span-1">
@@ -147,7 +147,7 @@ export default function ChauffeurForm({ chauffeur, onClose, onSave, currentUserI
                                 value={nom}
                                 onChange={e => setNom(e.target.value)}
                                 required
-                                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm sm:text-base"
                             />
                         </div>
                         <div className="col-span-1">
@@ -157,7 +157,7 @@ export default function ChauffeurForm({ chauffeur, onClose, onSave, currentUserI
                                 id="telephone"
                                 value={telephone}
                                 onChange={e => setTelephone(e.target.value)}
-                                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm sm:text-base"
                             />
                         </div>
                         <div className="col-span-1">
@@ -167,7 +167,7 @@ export default function ChauffeurForm({ chauffeur, onClose, onSave, currentUserI
                                 id="email"
                                 value={email}
                                 onChange={e => setEmail(e.target.value)}
-                                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm sm:text-base"
                             />
                         </div>
                         <div className="col-span-1">
@@ -176,14 +176,14 @@ export default function ChauffeurForm({ chauffeur, onClose, onSave, currentUserI
                                 id="statut"
                                 value={statut}
                                 onChange={e => setStatut(e.target.value)}
-                                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm sm:text-base"
                             >
                                 <option value="actif">Actif</option>
                                 <option value="inactif">Inactif</option>
                                 <option value="en congé">En congé</option>
                             </select>
                         </div>
-                        <div className="col-span-2 mt-4 text-lg font-semibold text-gray-700">Informations de Naissance</div>
+                        <div className="col-span-2 mt-4 text-base sm:text-lg font-semibold text-gray-700">Informations de Naissance</div>
                         <div className="col-span-1">
                             <label htmlFor="dateNaissance" className="block text-sm font-medium text-gray-700">Date de Naissance</label>
                             <input
@@ -191,7 +191,7 @@ export default function ChauffeurForm({ chauffeur, onClose, onSave, currentUserI
                                 id="dateNaissance"
                                 value={dateNaissance}
                                 onChange={e => setDateNaissance(e.target.value)}
-                                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm sm:text-base"
                             />
                         </div>
                         <div className="col-span-1">
@@ -202,11 +202,11 @@ export default function ChauffeurForm({ chauffeur, onClose, onSave, currentUserI
                                 value={lieuNaissance}
                                 onChange={e => setLieuNaissance(e.target.value)}
                                 placeholder="Ville, Pays"
-                                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm sm:text-base"
                             />
                         </div>
 
-                        <div className="col-span-2 mt-4 text-lg font-semibold text-gray-700">Informations Permis de Conduire</div>
+                        <div className="col-span-2 mt-4 text-base sm:text-lg font-semibold text-gray-700">Informations Permis de Conduire</div>
                         <div className="col-span-1">
                             <label htmlFor="permisNumero" className="block text-sm font-medium text-gray-700">Numéro de Permis</label>
                             <input
@@ -214,7 +214,7 @@ export default function ChauffeurForm({ chauffeur, onClose, onSave, currentUserI
                                 id="permisNumero"
                                 value={permisNumero}
                                 onChange={e => setPermisNumero(e.target.value)}
-                                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm sm:text-base"
                             />
                         </div>
                         <div className="col-span-1">
@@ -224,7 +224,7 @@ export default function ChauffeurForm({ chauffeur, onClose, onSave, currentUserI
                                 id="permisDelivranceDate"
                                 value={permisDelivranceDate}
                                 onChange={e => setPermisDelivranceDate(e.target.value)}
-                                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm sm:text-base"
                             />
                         </div>
                         <div className="col-span-2">
@@ -235,11 +235,11 @@ export default function ChauffeurForm({ chauffeur, onClose, onSave, currentUserI
                                 value={permisDelivranceLieu}
                                 onChange={e => setPermisDelivranceLieu(e.target.value)}
                                 placeholder="Préfecture, Pays"
-                                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm sm:text-base"
                             />
                         </div>
 
-                        <div className="col-span-2 mt-4 text-lg font-semibold text-gray-700">Adresse</div>
+                        <div className="col-span-2 mt-4 text-base sm:text-lg font-semibold text-gray-700">Adresse</div>
                         <div className="col-span-2">
                             <label htmlFor="adresseRue" className="block text-sm font-medium text-gray-700">Rue</label>
                             <input
@@ -248,7 +248,7 @@ export default function ChauffeurForm({ chauffeur, onClose, onSave, currentUserI
                                 value={adresseRue}
                                 onChange={e => setAdresseRue(e.target.value)}
                                 placeholder="Numéro et rue"
-                                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm sm:text-base"
                             />
                         </div>
                         <div className="col-span-1">
@@ -259,7 +259,7 @@ export default function ChauffeurForm({ chauffeur, onClose, onSave, currentUserI
                                 value={adresseCp}
                                 onChange={e => setAdresseCp(e.target.value)}
                                 placeholder="Code Postal"
-                                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm sm:text-base"
                             />
                         </div>
                         <div className="col-span-1">
@@ -270,7 +270,7 @@ export default function ChauffeurForm({ chauffeur, onClose, onSave, currentUserI
                                 value={adresseVille}
                                 onChange={e => setAdresseVille(e.target.value)}
                                 placeholder="Ville"
-                                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm sm:text-base"
                             />
                         </div>
                     </div>
@@ -281,14 +281,14 @@ export default function ChauffeurForm({ chauffeur, onClose, onSave, currentUserI
                         <button
                             type="button"
                             onClick={onClose}
-                            className="px-4 py-2 bg-gray-300 text-gray-800 rounded-md hover:bg-gray-400 disabled:opacity-50"
+                            className="px-4 py-2 bg-gray-300 text-gray-800 rounded-md hover:bg-gray-400 disabled:opacity-50 text-sm sm:text-base"
                             disabled={loading}
                         >
                             Annuler
                         </button>
                         <button
                             type="submit"
-                            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
+                            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 text-sm sm:text-base"
                             disabled={loading}
                         >
                             {loading ? 'Enregistrement...' : (chauffeur ? 'Mettre à jour' : 'Ajouter')}
@@ -296,6 +296,22 @@ export default function ChauffeurForm({ chauffeur, onClose, onSave, currentUserI
                     </div>
                 </form>
             </div>
+            <style jsx>{`
+                .custom-scrollbar::-webkit-scrollbar {
+                    width: 8px;
+                }
+                .custom-scrollbar::-webkit-scrollbar-track {
+                    background: #f1f1f1;
+                    border-radius: 4px;
+                }
+                .custom-scrollbar::-webkit-scrollbar-thumb {
+                    background: #888;
+                    border-radius: 4px;
+                }
+                .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+                    background: #555;
+                }
+            `}</style>
         </div>
     );
 }
