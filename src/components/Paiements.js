@@ -1,4 +1,3 @@
-// src/components/Paiements.js
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../supabaseClient';
 import { v4 as uuidv4 } from 'uuid'; // Import uuid for unique filenames
@@ -10,48 +9,45 @@ export default function Paiements() {
     const [selectedVehiculeId, setSelectedVehiculeId] = useState('');
     const [chauffeurs, setChauffeurs] = useState([]);
     const [vehicules, setVehicules] = useState([]);
-    const [payments, setPayments] = useState([]); // New state for saved payments
-    const [loading, setLoading] = useState(false);
+    const [payments, setPayments] = useState([]); // State for saved payments
+    const [loading, setLoading] = useState(false); // For form submission loading
     const [error, setError] = useState(null);
     const [successMessage, setSuccessMessage] = useState(null);
-    const [loadingPayments, setLoadingPayments] = useState(true); // New state for loading saved payments
-    const [user, setUser] = useState(null); // New state to store the current user
+    const [loadingPayments, setLoadingPayments] = useState(true); // For loading saved payments
+    const [user, setUser] = useState(null); // State to store the current user
+    const [deletingId, setDeletingId] = useState(null); // State to track which payment is being deleted
 
+    // --- Function to fetch all data (chauffeurs, vehicules, payments) ---
+    const fetchData = async () => {
+        setError(null);
+        setLoadingPayments(true);
 
-    // --- Fetching Chauffeurs, Vehicules, Payments, and User ---
-    useEffect(() => {
-        const fetchData = async () => {
-            setError(null);
-            setLoadingPayments(true);
+        try {
+            // Get current user session
+            const { data: { session } } = await supabase.auth.getSession();
+            if (session) {
+                setUser(session.user);
+                const userId = session.user.id;
 
-            try {
-                // Get current user session
-                const { data: { session } } = await supabase.auth.getSession();
-                if (session) {
-                    setUser(session.user); // Set the user state
-                } else {
-                    setError('Utilisateur non authentifié. Veuillez vous connecter.');
-                    setLoadingPayments(false);
-                    return;
-                }
-
-                // Fetch chauffeurs (RLS will automatically filter by user_id)
+                // Fetch chauffeurs, explicitly filtering by user_id
                 const { data: chauffeursData, error: chauffeursError } = await supabase
                     .from('chauffeurs')
                     .select('id, prenom, nom')
+                    .eq('user_id', userId)
                     .order('prenom', { ascending: true });
                 if (chauffeursError) throw chauffeursError;
                 setChauffeurs(chauffeursData);
 
-                // Fetch vehicules (RLS will automatically filter by user_id)
+                // Fetch vehicules, explicitly filtering by user_id
                 const { data: vehiculesData, error: vehiculesError } = await supabase
                     .from('vehicules')
                     .select('id, plaque, modele')
+                    .eq('user_id', userId)
                     .order('plaque', { ascending: true });
                 if (vehiculesError) throw vehiculesError;
                 setVehicules(vehiculesData);
 
-                // Fetch payments (RLS will automatically filter by user_id)
+                // Fetch payments (RLS will also filter, but ensure user is tied via `user_id` column)
                 const { data: paymentsData, error: paymentsError } = await supabase
                     .from('payments')
                     .select(`
@@ -63,22 +59,26 @@ export default function Paiements() {
                         chauffeurs (prenom, nom),
                         vehicules (plaque, modele)
                     `)
-                    .order('created_at', { ascending: false }); // Show newest first
+                    .order('created_at', { ascending: false });
 
                 if (paymentsError) throw paymentsError;
                 setPayments(paymentsData);
 
-
-            } catch (err) {
-                console.error('Error fetching data:', err);
-                setError('Impossible de charger les données (chauffeurs, véhicules ou paiements).');
-            } finally {
-                setLoadingPayments(false);
+            } else {
+                setError('Utilisateur non authentifié. Veuillez vous connecter.');
             }
-        };
+        } catch (err) {
+            console.error('Error fetching data:', err);
+            setError('Impossible de charger les données (chauffeurs, véhicules ou paiements).');
+        } finally {
+            setLoadingPayments(false);
+        }
+    };
 
+    // --- Effect Hook to Fetch Data on Component Mount ---
+    useEffect(() => {
         fetchData();
-    }, []);
+    }, []); // Empty dependency array means this runs once on mount
 
     const handleImageChange = (e) => {
         if (e.target.files && e.target.files[0]) {
@@ -93,7 +93,7 @@ export default function Paiements() {
         setError(null);
         setSuccessMessage(null);
 
-        if (!user) { // Ensure user is available before proceeding
+        if (!user) {
             setError('Utilisateur non authentifié. Veuillez vous connecter.');
             setLoading(false);
             return;
@@ -114,12 +114,10 @@ export default function Paiements() {
         try {
             const fileExtension = imageFile.name.split('.').pop();
             const fileName = `${uuidv4()}.${fileExtension}`;
-            // If you want user-specific storage paths: `receipts/${user.id}/${fileName}`
-            // For now, keeping your existing path structure:
             const filePath = `receipts/${fileName}`;
 
             // 1. Upload the image to Supabase Storage
-            const { data: uploadData, error: uploadError } = await supabase.storage
+            const { error: uploadError } = await supabase.storage
                 .from('chauffeur-media')
                 .upload(filePath, imageFile, {
                     cacheControl: '3600',
@@ -138,7 +136,7 @@ export default function Paiements() {
                     image_url: imageUrl,
                     chauffeur_id: selectedChauffeurId || null,
                     vehicule_id: selectedVehiculeId || null,
-                    user_id: user.id, // <--- IMPORTANT: Add the current user's ID
+                    user_id: user.id, // Add the current user's ID
                 },
             ]);
 
@@ -150,22 +148,8 @@ export default function Paiements() {
 
             setSuccessMessage('Reçu téléchargé et associé avec succès !');
 
-            // Re-fetch payments after successful upload (RLS will filter automatically)
-            const { data: updatedPayments, error: fetchError } = await supabase
-                .from('payments')
-                .select(`
-                    id,
-                    image_url,
-                    created_at,
-                    chauffeur_id,
-                    vehicule_id,
-                    chauffeurs (prenom, nom),
-                    vehicules (plaque, modele)
-                `)
-                .order('created_at', { ascending: false });
-
-            if (fetchError) throw fetchError;
-            setPayments(updatedPayments);
+            // Re-fetch all data to update the payments list
+            await fetchData();
 
             // Reset form
             setImageFile(null);
@@ -181,7 +165,57 @@ export default function Paiements() {
         }
     };
 
-    // ... (rest of the component's JSX) ...
+    // --- Function to handle payment deletion ---
+    const handleDeletePayment = async (paymentId, imageUrl) => {
+        if (!confirm('Êtes-vous sûr de vouloir supprimer ce reçu ? Cette action est irréversible.')) {
+            return;
+        }
+
+        setDeletingId(paymentId); // Set the ID of the item being deleted
+        setError(null);
+        setSuccessMessage(null);
+
+        try {
+            // 1. Delete the record from the 'payments' table
+            const { error: deleteError } = await supabase
+                .from('payments')
+                .delete()
+                .eq('id', paymentId);
+
+            if (deleteError) {
+                throw deleteError;
+            }
+
+            // 2. Delete the associated image from Supabase Storage
+            // Extract the path from the full image URL
+            const urlParts = imageUrl.split('/');
+            // The path usually starts after 'public/chauffeur-media/'
+            const filePath = urlParts.slice(urlParts.indexOf('chauffeur-media') + 1).join('/');
+
+            const { error: storageError } = await supabase.storage
+                .from('chauffeur-media')
+                .remove([filePath]);
+
+            if (storageError) {
+                // Log storage error but don't prevent DB deletion success
+                console.error('Error deleting image from storage:', storageError.message);
+                setSuccessMessage('Reçu supprimé de la base de données, mais l\'image n\'a pas pu être supprimée du stockage.');
+            } else {
+                setSuccessMessage('Reçu et image supprimés avec succès !');
+            }
+
+            // Update the state to remove the deleted payment without a full refetch
+            setPayments(prevPayments => prevPayments.filter(payment => payment.id !== paymentId));
+
+        } catch (err) {
+            console.error('Error deleting payment:', err);
+            setError(`Erreur lors de la suppression du reçu : ${err.message}`);
+        } finally {
+            setDeletingId(null); // Reset deleting state
+        }
+    };
+
+
     return (
         <div className="container mx-auto p-4 sm:p-6 lg:p-8">
             <h1 className="text-2xl sm:text-3xl font-bold text-white mb-6 text-center">Gestion des Paiements</h1>
@@ -272,6 +306,7 @@ export default function Paiements() {
                                 <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
                                 <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Chauffeur</th>
                                 <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Véhicule</th>
+                                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th> {/* New column for actions */}
                             </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-200">
@@ -290,6 +325,15 @@ export default function Paiements() {
                                     </td>
                                     <td className="px-4 py-4 text-gray-800 text-sm">
                                         {payment.vehicules ? `${payment.vehicules.plaque} (${payment.vehicules.modele})` : 'N/A'}
+                                    </td>
+                                    <td className="px-4 py-4">
+                                        <button
+                                            onClick={() => handleDeletePayment(payment.id, payment.image_url)}
+                                            disabled={deletingId === payment.id} // Disable while deleting
+                                            className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded-md text-xs sm:text-sm disabled:opacity-50"
+                                        >
+                                            {deletingId === payment.id ? 'Suppression...' : 'Supprimer'}
+                                        </button>
                                     </td>
                                 </tr>
                             ))}
