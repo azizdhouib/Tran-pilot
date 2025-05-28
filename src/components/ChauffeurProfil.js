@@ -9,6 +9,7 @@ export default function ChauffeurProfil({ chauffeurId, retour }) {
     const [error, setError] = useState(null);
     const [updatingVehicle, setUpdatingVehicle] = useState(false);
     const [uploadingPhoto, setUploadingPhoto] = useState('');
+    const [user, setUser] = useState(null); // New state to store the current user
 
     // State for editable driver fields
     const [nom, setNom] = useState('');
@@ -20,7 +21,6 @@ export default function ChauffeurProfil({ chauffeurId, retour }) {
     const [adresseCp, setAdresseCp] = useState('');
     const [adresseVille, setAdresseVille] = useState('');
     const [permisNumero, setPermisNumero] = useState('');
-    // NEW STATES FOR ADDITIONAL FIELDS
     const [dateNaissance, setDateNaissance] = useState('');
     const [lieuNaissance, setLieuNaissance] = useState('');
     const [permisDelivranceDate, setPermisDelivranceDate] = useState('');
@@ -28,39 +28,60 @@ export default function ChauffeurProfil({ chauffeurId, retour }) {
 
 
     useEffect(() => {
-        fetchChauffeurDataAndVehicles();
-    }, [chauffeurId]);
+        const initializeUserAndData = async () => {
+            setLoading(true);
+            const { data: { session } } = await supabase.auth.getSession();
+            if (session) {
+                setUser(session.user);
+                await fetchChauffeurDataAndVehicles(session.user.id);
+            } else {
+                setError("Utilisateur non authentifié. Impossible de charger le profil du chauffeur.");
+                setLoading(false);
+            }
+        };
+        initializeUserAndData();
+    }, [chauffeurId]); // Depend on chauffeurId to refetch if it changes
 
-    async function fetchChauffeurDataAndVehicles() {
-        setLoading(true);
+    async function fetchChauffeurDataAndVehicles(userId) {
+        if (!userId) {
+            setError("User ID is missing.");
+            setLoading(false);
+            return;
+        }
+
         try {
-            const { data, error } = await supabase
+            // Fetch chauffeur data, filtered by user_id
+            const { data: chauffeurData, error: chauffeurError } = await supabase
                 .from('chauffeurs')
                 .select('*')
                 .eq('id', chauffeurId)
+                .eq('user_id', userId) // Filter by the current user's ID
                 .single();
 
-            if (error) throw error;
+            if (chauffeurError) throw chauffeurError;
 
-            setChauffeur(data);
-            setNom(data.nom || '');
-            setPrenom(data.prenom || '');
-            setTelephone(data.telephone || '');
-            setEmail(data.email || '');
-            setStatut(data.statut || 'actif');
-            setAdresseRue(data.adresse_rue || '');
-            setAdresseCp(data.adresse_cp || '');
-            setAdresseVille(data.adresse_ville || '');
-            setPermisNumero(data.permis_numero || '');
-            // Initialize new states with fetched data
-            setDateNaissance(data.date_naissance || '');
-            setLieuNaissance(data.lieu_naissance || '');
-            setPermisDelivranceDate(data.permis_delivrance_date || '');
-            setPermisDelivranceLieu(data.permis_delivrance_lieu || '');
+            setChauffeur(chauffeurData);
+            setNom(chauffeurData.nom || '');
+            setPrenom(chauffeurData.prenom || '');
+            setTelephone(chauffeurData.telephone || '');
+            setEmail(chauffeurData.email || '');
+            setStatut(chauffeurData.statut || 'actif');
+            setAdresseRue(chauffeurData.adresse_rue || '');
+            setAdresseCp(chauffeurData.adresse_cp || '');
+            setAdresseVille(chauffeurData.adresse_ville || '');
+            setPermisNumero(chauffeurData.permis_numero || '');
+            setDateNaissance(chauffeurData.date_naissance || '');
+            setLieuNaissance(chauffeurData.lieu_naissance || '');
+            setPermisDelivranceDate(chauffeurData.permis_delivrance_date || '');
+            setPermisDelivranceLieu(chauffeurData.permis_delivrance_lieu || '');
 
-            setVehiculeId(data.vehicule_id || '');
+            setVehiculeId(chauffeurData.vehicule_id || '');
 
-            const { data: vehiculesData, error: vehiculesError } = await supabase.from('vehicules').select('*');
+            // Fetch vehicles, filtered by user_id
+            const { data: vehiculesData, error: vehiculesError } = await supabase
+                .from('vehicules')
+                .select('*')
+                .eq('user_id', userId); // Filter by the current user's ID
             if (vehiculesError) throw vehiculesError;
             setVehicules(vehiculesData || []);
 
@@ -74,8 +95,13 @@ export default function ChauffeurProfil({ chauffeurId, retour }) {
 
     async function handleUpdateChauffeur(e) {
         e.preventDefault();
+        if (!user) {
+            alert("Vous devez être connecté pour modifier un chauffeur.");
+            return;
+        }
         setLoading(true);
         try {
+            // RLS will ensure only the owner can update
             const { error: updateError } = await supabase
                 .from('chauffeurs')
                 .update({
@@ -88,18 +114,19 @@ export default function ChauffeurProfil({ chauffeurId, retour }) {
                     adresse_cp: adresseCp,
                     adresse_ville: adresseVille,
                     permis_numero: permisNumero,
-                    // Include new fields in the update payload
                     date_naissance: dateNaissance,
                     lieu_naissance: lieuNaissance,
                     permis_delivrance_date: permisDelivranceDate,
                     permis_delivrance_lieu: permisDelivranceLieu,
                 })
-                .eq('id', chauffeurId);
+                .eq('id', chauffeurId)
+                .eq('user_id', user.id); // Ensure ownership
 
             if (updateError) throw updateError;
 
             alert('Informations du chauffeur mises à jour avec succès !');
-            await fetchChauffeurDataAndVehicles();
+            // Re-fetch data for the current user
+            await fetchChauffeurDataAndVehicles(user.id);
         } catch (err) {
             alert('Erreur lors de la mise à jour : ' + err.message);
             setError(err.message);
@@ -111,6 +138,10 @@ export default function ChauffeurProfil({ chauffeurId, retour }) {
     async function handleImageUpload(e, type) {
         const file = e.target.files[0];
         if (!file) return;
+        if (!user) {
+            alert("Vous devez être connecté pour uploader une photo.");
+            return;
+        }
 
         if (!file.type.startsWith('image/')) {
             return alert('Veuillez sélectionner une image valide.');
@@ -141,14 +172,16 @@ export default function ChauffeurProfil({ chauffeurId, retour }) {
             if (type === 'photo_profil') updateData.photo_profil = publicUrl;
             if (type === 'photo_permis') updateData.photo_permis = publicUrl;
 
+            // RLS will ensure only the owner can update
             const { error: updateError } = await supabase
                 .from('chauffeurs')
                 .update(updateData)
-                .eq('id', chauffeurId);
+                .eq('id', chauffeurId)
+                .eq('user_id', user.id); // Ensure ownership
 
             if (updateError) throw updateError;
 
-            await fetchChauffeurDataAndVehicles();
+            await fetchChauffeurDataAndVehicles(user.id); // Re-fetch data for the current user
             alert('Photo mise à jour avec succès !');
         } catch (err) {
             console.error('Upload error:', err);
@@ -159,43 +192,55 @@ export default function ChauffeurProfil({ chauffeurId, retour }) {
     }
 
     async function handleVehiculeChange() {
+        if (!user) {
+            alert("Vous devez être connecté pour modifier l'affectation du véhicule.");
+            return;
+        }
         setUpdatingVehicle(true);
         try {
+            // Fetch chauffeur data, filtered by user_id
             const { data: chauffeurData, error: fetchChauffeurError } = await supabase
                 .from('chauffeurs')
                 .select('vehicule_id')
                 .eq('id', chauffeurId)
+                .eq('user_id', user.id) // Ensure fetching only the user's chauffeur
                 .single();
 
             if (fetchChauffeurError) throw fetchChauffeurError;
 
             const ancienVehiculeId = chauffeurData.vehicule_id;
 
+            // Update chauffeur's vehicle, filtered by user_id
             const { error: updateChauffeurError } = await supabase
                 .from('chauffeurs')
                 .update({ vehicule_id: vehiculeId === '' ? null : vehiculeId })
-                .eq('id', chauffeurId);
+                .eq('id', chauffeurId)
+                .eq('user_id', user.id); // Ensure ownership
 
             if (updateChauffeurError) throw updateChauffeurError;
 
+            // Update old vehicle's status, filtered by user_id
             if (ancienVehiculeId && ancienVehiculeId !== vehiculeId) {
                 const { error: updateOldVehiculeError } = await supabase
                     .from('vehicules')
                     .update({ statut: 'Disponible' })
-                    .eq('id', ancienVehiculeId);
+                    .eq('id', ancienVehiculeId)
+                    .eq('user_id', user.id); // Ensure ownership
                 if (updateOldVehiculeError) throw updateOldVehiculeError;
             }
 
+            // Update new vehicle's status, filtered by user_id
             if (vehiculeId) {
                 const { error: updateNewVehiculeError } = await supabase
                     .from('vehicules')
                     .update({ statut: 'Indisponible' })
-                    .eq('id', vehiculeId);
+                    .eq('id', vehiculeId)
+                    .eq('user_id', user.id); // Ensure ownership
                 if (updateNewVehiculeError) throw updateNewVehiculeError;
             }
 
             alert('Véhicule mis à jour avec succès !');
-            await fetchChauffeurDataAndVehicles();
+            await fetchChauffeurDataAndVehicles(user.id); // Re-fetch data for the current user
         } catch (err) {
             alert('Erreur: ' + err.message);
             console.error('Error updating vehicle:', err);
@@ -217,7 +262,7 @@ export default function ChauffeurProfil({ chauffeurId, retour }) {
                 ← Retour à la liste
             </button>
 
-            <h2 className="text-2xl font-semibold mb-4">Profil de {prenom} {nom}</h2> {/* Use state variables here */}
+            <h2 className="text-2xl font-semibold mb-4">Profil de {prenom} {nom}</h2>
 
             <form onSubmit={handleUpdateChauffeur} className="mb-8 p-4 border rounded-md bg-gray-50">
                 <h3 className="text-xl font-semibold mb-4">Informations Personnelles</h3>
@@ -287,7 +332,6 @@ export default function ChauffeurProfil({ chauffeurId, retour }) {
                             className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                         />
                     </div>
-                    {/* NEW: Date de naissance */}
                     <div>
                         <label htmlFor="dateNaissance" className="block text-sm font-medium text-gray-700">Date de Naissance</label>
                         <input
@@ -298,7 +342,6 @@ export default function ChauffeurProfil({ chauffeurId, retour }) {
                             className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                         />
                     </div>
-                    {/* NEW: Lieu de naissance */}
                     <div>
                         <label htmlFor="lieuNaissance" className="block text-sm font-medium text-gray-700">Lieu de Naissance</label>
                         <input
@@ -309,7 +352,6 @@ export default function ChauffeurProfil({ chauffeurId, retour }) {
                             className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                         />
                     </div>
-                    {/* NEW: Permis délivrance date */}
                     <div>
                         <label htmlFor="permisDelivranceDate" className="block text-sm font-medium text-gray-700">Permis Délivré le</label>
                         <input
@@ -320,7 +362,6 @@ export default function ChauffeurProfil({ chauffeurId, retour }) {
                             className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                         />
                     </div>
-                    {/* NEW: Permis délivrance lieu */}
                     <div>
                         <label htmlFor="permisDelivranceLieu" className="block text-sm font-medium text-gray-700">Permis Délivré par/à</label>
                         <input

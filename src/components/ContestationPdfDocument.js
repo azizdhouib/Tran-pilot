@@ -147,7 +147,7 @@ const ContestationPdfDocument = ({ amande, chauffeurDesignant, chauffeurDesigne 
                 </View>
 
                 <View style={styles.footer} fixed>
-                    <Text>Document généré le {formattedDate} - Pour toute question, consulter le site ANTAI.gouv.fr</Text>
+                    <Text>Document généré le {formattedDate}</Text>
                 </View>
             </Page>
         </Document>

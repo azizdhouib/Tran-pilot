@@ -1,3 +1,4 @@
+// src/components/Paiements.js
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../supabaseClient';
 import { v4 as uuidv4 } from 'uuid'; // Import uuid for unique filenames
@@ -14,33 +15,43 @@ export default function Paiements() {
     const [error, setError] = useState(null);
     const [successMessage, setSuccessMessage] = useState(null);
     const [loadingPayments, setLoadingPayments] = useState(true); // New state for loading saved payments
+    const [user, setUser] = useState(null); // New state to store the current user
 
-    // --- Fetching Chauffeurs, Vehicules, and Payments ---
+
+    // --- Fetching Chauffeurs, Vehicules, Payments, and User ---
     useEffect(() => {
         const fetchData = async () => {
             setError(null);
-            setLoadingPayments(true); // Start loading payments
+            setLoadingPayments(true);
 
             try {
-                // Fetch chauffeurs
+                // Get current user session
+                const { data: { session } } = await supabase.auth.getSession();
+                if (session) {
+                    setUser(session.user); // Set the user state
+                } else {
+                    setError('Utilisateur non authentifié. Veuillez vous connecter.');
+                    setLoadingPayments(false);
+                    return;
+                }
+
+                // Fetch chauffeurs (RLS will automatically filter by user_id)
                 const { data: chauffeursData, error: chauffeursError } = await supabase
                     .from('chauffeurs')
                     .select('id, prenom, nom')
                     .order('prenom', { ascending: true });
-
                 if (chauffeursError) throw chauffeursError;
                 setChauffeurs(chauffeursData);
 
-                // Fetch vehicules
+                // Fetch vehicules (RLS will automatically filter by user_id)
                 const { data: vehiculesData, error: vehiculesError } = await supabase
                     .from('vehicules')
                     .select('id, plaque, modele')
                     .order('plaque', { ascending: true });
-
                 if (vehiculesError) throw vehiculesError;
                 setVehicules(vehiculesData);
 
-                // Fetch payments
+                // Fetch payments (RLS will automatically filter by user_id)
                 const { data: paymentsData, error: paymentsError } = await supabase
                     .from('payments')
                     .select(`
@@ -57,29 +68,23 @@ export default function Paiements() {
                 if (paymentsError) throw paymentsError;
                 setPayments(paymentsData);
 
+
             } catch (err) {
                 console.error('Error fetching data:', err);
                 setError('Impossible de charger les données (chauffeurs, véhicules ou paiements).');
             } finally {
-                setLoadingPayments(false); // Stop loading payments
+                setLoadingPayments(false);
             }
         };
 
         fetchData();
-    }, []); // Empty dependency array means this runs once on mount
+    }, []);
 
     const handleImageChange = (e) => {
-        const file = e.target.files[0];
-        if (file) {
+        if (e.target.files && e.target.files[0]) {
+            const file = e.target.files[0];
             setImageFile(file);
-            const reader = new FileReader();
-            reader.onloadend = () => {
-                setImagePreviewUrl(reader.result);
-            };
-            reader.readAsDataURL(file);
-        } else {
-            setImageFile(null);
-            setImagePreviewUrl(null);
+            setImagePreviewUrl(URL.createObjectURL(file));
         }
     };
 
@@ -88,14 +93,20 @@ export default function Paiements() {
         setError(null);
         setSuccessMessage(null);
 
+        if (!user) { // Ensure user is available before proceeding
+            setError('Utilisateur non authentifié. Veuillez vous connecter.');
+            setLoading(false);
+            return;
+        }
+
         if (!imageFile) {
-            setError('Veuillez sélectionner une image de reçu.');
+            setError('Veuillez sélectionner un fichier image.');
             setLoading(false);
             return;
         }
 
         if (!selectedChauffeurId && !selectedVehiculeId) {
-            setError('Veuillez sélectionner au moins un chauffeur ou un véhicule pour le reçu.');
+            setError('Veuillez sélectionner au moins un chauffeur ou un véhicule.');
             setLoading(false);
             return;
         }
@@ -103,8 +114,11 @@ export default function Paiements() {
         try {
             const fileExtension = imageFile.name.split('.').pop();
             const fileName = `${uuidv4()}.${fileExtension}`;
+            // If you want user-specific storage paths: `receipts/${user.id}/${fileName}`
+            // For now, keeping your existing path structure:
             const filePath = `receipts/${fileName}`;
 
+            // 1. Upload the image to Supabase Storage
             const { data: uploadData, error: uploadError } = await supabase.storage
                 .from('chauffeur-media')
                 .upload(filePath, imageFile, {
@@ -118,22 +132,25 @@ export default function Paiements() {
 
             const imageUrl = `${supabase.supabaseUrl}/storage/v1/object/public/chauffeur-media/${filePath}`;
 
+            // 2. Insert a record into the 'payments' table, INCLUDING user_id
             const { error: insertError } = await supabase.from('payments').insert([
                 {
                     image_url: imageUrl,
                     chauffeur_id: selectedChauffeurId || null,
                     vehicule_id: selectedVehiculeId || null,
+                    user_id: user.id, // <--- IMPORTANT: Add the current user's ID
                 },
             ]);
 
             if (insertError) {
-                await supabase.storage.from('chauffeur-media').remove([filePath]); // Clean up storage
+                // If DB insert fails, try to remove the uploaded file
+                await supabase.storage.from('chauffeur-media').remove([filePath]);
                 throw insertError;
             }
 
             setSuccessMessage('Reçu téléchargé et associé avec succès !');
 
-            // --- Re-fetch payments after successful upload ---
+            // Re-fetch payments after successful upload (RLS will filter automatically)
             const { data: updatedPayments, error: fetchError } = await supabase
                 .from('payments')
                 .select(`
@@ -149,7 +166,6 @@ export default function Paiements() {
 
             if (fetchError) throw fetchError;
             setPayments(updatedPayments);
-            // --- End Re-fetch ---
 
             // Reset form
             setImageFile(null);
@@ -165,111 +181,97 @@ export default function Paiements() {
         }
     };
 
+    // ... (rest of the component's JSX) ...
     return (
-        <div className="p-4 md:p-6 bg-white rounded shadow mx-auto">
-            <h2 className="text-xl md:text-2xl font-bold mb-4">Gestion des Paiements</h2>
+        <div className="container mx-auto p-4 sm:p-6 lg:p-8">
+            <h1 className="text-2xl sm:text-3xl font-bold text-white mb-6 text-center">Gestion des Paiements</h1>
 
-            {/* Success/Error Messages */}
-            {successMessage && (
-                <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative mb-4" role="alert">
-                    <span className="block sm:inline">{successMessage}</span>
-                </div>
-            )}
-            {error && (
-                <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4" role="alert">
-                    <span className="block sm:inline">{error}</span>
-                </div>
-            )}
+            <div className="bg-white p-4 sm:p-6 rounded-lg shadow-md mb-8">
+                <h2 className="text-xl sm:text-2xl font-semibold text-gray-700 mb-4">Télécharger un Nouveau Reçu</h2>
+                {error && <p className="text-red-500 text-sm mb-4">{error}</p>}
+                {successMessage && <p className="text-green-500 text-sm mb-4">{successMessage}</p>}
 
-            {/* Payment Upload Form */}
-            <div className="mb-8 p-4 border border-gray-200 rounded-lg bg-gray-50">
-                <h3 className="text-lg font-semibold mb-3">Télécharger un nouveau reçu</h3>
                 <div className="mb-4">
-                    <label htmlFor="receipt-upload" className="block text-gray-700 text-sm font-bold mb-2">
-                        Sélectionner un reçu (photo ou fichier):
+                    <label htmlFor="imageUpload" className="block text-gray-700 text-sm font-bold mb-2">
+                        Image du Reçu:
                     </label>
                     <input
-                        id="receipt-upload"
                         type="file"
+                        id="imageUpload"
                         accept="image/*"
                         onChange={handleImageChange}
-                        className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                        className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
                     />
+                    {imagePreviewUrl && (
+                        <div className="mt-4">
+                            <img src={imagePreviewUrl} alt="Aperçu du reçu" className="max-w-xs h-auto rounded shadow" />
+                        </div>
+                    )}
                 </div>
 
-                {imagePreviewUrl && (
-                    <div className="mb-4">
-                        <h4 className="text-md font-semibold mb-2">Aperçu de l'image:</h4>
-                        <img src={imagePreviewUrl} alt="Aperçu du reçu" className="max-w-xs h-auto rounded shadow-md border border-gray-200" />
-                    </div>
-                )}
+                <div className="mb-4">
+                    <label htmlFor="chauffeurSelect" className="block text-gray-700 text-sm font-bold mb-2">
+                        Chauffeur Associé:
+                    </label>
+                    <select
+                        id="chauffeurSelect"
+                        value={selectedChauffeurId}
+                        onChange={(e) => setSelectedChauffeurId(e.target.value)}
+                        className="shadow border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                    >
+                        <option value="">Sélectionner un chauffeur</option>
+                        {chauffeurs.map((chauffeur) => (
+                            <option key={chauffeur.id} value={chauffeur.id}>
+                                {chauffeur.prenom} {chauffeur.nom}
+                            </option>
+                        ))}
+                    </select>
+                </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                    <div>
-                        <label htmlFor="chauffeur-select" className="block text-gray-700 text-sm font-bold mb-2">
-                            Associer à un chauffeur (optionnel):
-                        </label>
-                        <select
-                            id="chauffeur-select"
-                            value={selectedChauffeurId}
-                            onChange={(e) => setSelectedChauffeurId(e.target.value)}
-                            className="block w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring focus:border-blue-300"
-                        >
-                            <option value="">Sélectionner un chauffeur</option>
-                            {chauffeurs.map((c) => (
-                                <option key={c.id} value={c.id}>
-                                    {c.prenom} {c.nom}
-                                </option>
-                            ))}
-                        </select>
-                    </div>
-
-                    <div>
-                        <label htmlFor="vehicule-select" className="block text-gray-700 text-sm font-bold mb-2">
-                            Associer à un véhicule (optionnel):
-                        </label>
-                        <select
-                            id="vehicule-select"
-                            value={selectedVehiculeId}
-                            onChange={(e) => setSelectedVehiculeId(e.target.value)}
-                            className="block w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring focus:border-blue-300"
-                        >
-                            <option value="">Sélectionner un véhicule</option>
-                            {vehicules.map((v) => (
-                                <option key={v.id} value={v.id}>
-                                    {v.plaque} ({v.modele})
-                                </option>
-                            ))}
-                        </select>
-                    </div>
+                <div className="mb-6">
+                    <label htmlFor="vehiculeSelect" className="block text-gray-700 text-sm font-bold mb-2">
+                        Véhicule Associé:
+                    </label>
+                    <select
+                        id="vehiculeSelect"
+                        value={selectedVehiculeId}
+                        onChange={(e) => setSelectedVehiculeId(e.target.value)}
+                        className="shadow border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                    >
+                        <option value="">Sélectionner un véhicule</option>
+                        {vehicules.map((vehicule) => (
+                            <option key={vehicule.id} value={vehicule.id}>
+                                {vehicule.plaque} ({vehicule.modele})
+                            </option>
+                        ))}
+                    </select>
                 </div>
 
                 <button
                     onClick={handleUpload}
-                    disabled={loading || !imageFile || (!selectedChauffeurId && !selectedVehiculeId)}
-                    className="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-md shadow-md transition duration-300 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed"
+                    disabled={loading}
+                    className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline disabled:opacity-50"
                 >
-                    {loading ? 'Téléchargement...' : 'Télécharger et associer le reçu'}
+                    {loading ? 'Téléchargement...' : 'Télécharger Reçu'}
                 </button>
             </div>
 
             {/* --- Saved Payments Display Section --- */}
-            <div className="mt-8 pt-4 border-t border-gray-200">
-                <h3 className="text-xl font-bold mb-4">Reçus Enregistrés</h3>
-
+            <div className="bg-white p-4 sm:p-6 rounded-lg shadow-md">
+                <h2 className="text-xl sm:text-2xl font-semibold text-gray-700 mb-4">Reçus Enregistrés</h2>
                 {loadingPayments ? (
-                    <p className="text-center text-gray-600">Chargement des reçus...</p>
+                    <p>Chargement des reçus...</p>
                 ) : payments.length === 0 ? (
-                    <p className="text-center text-gray-500">Aucun reçu enregistré pour le moment.</p>
+                    <p>Aucun reçu trouvé.</p>
                 ) : (
                     <div className="overflow-x-auto">
-                        <table className="min-w-full bg-white border border-gray-200 rounded-lg shadow-sm">
+                        <table className="min-w-full bg-white border border-gray-200 rounded-lg">
                             <thead className="bg-gray-100">
                             <tr>
-                                <th className="px-4 py-3 border-b-2 border-gray-200 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Reçu</th>
-                                <th className="px-4 py-3 border-b-2 border-gray-200 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Date</th>
-                                <th className="px-4 py-3 border-b-2 border-gray-200 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Chauffeur</th>
-                                <th className="px-4 py-3 border-b-2 border-gray-200 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Véhicule</th>
+                                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Image</th>
+                                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Chauffeur</th>
+                                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Véhicule</th>
                             </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-200">

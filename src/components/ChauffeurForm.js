@@ -1,7 +1,8 @@
+// src/components/ChauffeurForm.js
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../supabaseClient';
 
-export default function ChauffeurForm({ chauffeur, onClose, onSave }) {
+export default function ChauffeurForm({ chauffeur, onClose, onSave, currentUserId }) { // Added currentUserId prop
     const [nom, setNom] = useState('');
     const [prenom, setPrenom] = useState('');
     const [telephone, setTelephone] = useState('');
@@ -58,6 +59,12 @@ export default function ChauffeurForm({ chauffeur, onClose, onSave }) {
         setLoading(true);
         setError(null);
 
+        if (!currentUserId && !chauffeur) { // If adding new and no user ID provided
+            setError('User not authenticated. Cannot add chauffeur.');
+            setLoading(false);
+            return;
+        }
+
         const payload = {
             nom,
             prenom,
@@ -72,96 +79,98 @@ export default function ChauffeurForm({ chauffeur, onClose, onSave }) {
             lieu_naissance: lieuNaissance,
             permis_delivrance_date: permisDelivranceDate,
             permis_delivrance_lieu: permisDelivranceLieu,
-            // vehicule_id and photos are handled in ChauffeurProfil if needed,
-            // but for initial creation/basic edit, they are not included here.
         };
 
+        if (!chauffeur) { // Adding a new chauffeur
+            payload.user_id = currentUserId; // <--- Add user_id for new records
+        }
+
+
         try {
-            if (chauffeur && chauffeur.id) {
-                // Editing existing chauffeur
+            if (chauffeur) {
+                // Update existing chauffeur (RLS handles ownership)
                 const { error: updateError } = await supabase
                     .from('chauffeurs')
                     .update(payload)
                     .eq('id', chauffeur.id);
 
                 if (updateError) throw updateError;
-                alert('Chauffeur mis à jour avec succès !');
             } else {
-                // Adding new chauffeur
+                // Add new chauffeur
                 const { error: insertError } = await supabase
                     .from('chauffeurs')
-                    .insert(payload);
+                    .insert([payload]);
 
                 if (insertError) throw insertError;
-                alert('Nouveau chauffeur ajouté avec succès !');
             }
-            onSave(); // Callback to refresh list in parent (Chauffeurs.js)
-            onClose(); // Close the form modal
+            onSave(); // Call onSave to close form and refresh list
         } catch (err) {
             console.error('Error saving chauffeur:', err);
-            setError(err.message);
-            alert('Erreur lors de l\'enregistrement : ' + err.message);
+            setError(`Erreur lors de l'enregistrement du chauffeur : ${err.message}`);
         } finally {
             setLoading(false);
         }
     }
 
     return (
-        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 flex justify-center items-center p-4">
-            <div className="bg-white p-8 rounded-lg shadow-xl max-w-2xl w-full m-auto relative max-h-[90vh] overflow-y-auto">
-                <h3 className="text-2xl font-semibold mb-6 text-center">
-                    {chauffeur ? 'Modifier le Chauffeur' : 'Ajouter un Nouveau Chauffeur'}
-                </h3>
-                <form onSubmit={handleSubmit} className="space-y-6">
-                    <h4 className="text-lg font-semibold border-b pb-2 mb-4">Informations Personnelles</h4>
+        <div className="relative p-4 sm:p-6 bg-white rounded-lg shadow-xl w-full max-w-lg mx-auto my-8">
+            <h2 className="text-xl sm:text-2xl font-semibold text-gray-800 mb-6 text-center">
+                {chauffeur ? 'Modifier le Chauffeur' : 'Ajouter un Nouveau Chauffeur'}
+            </h2>
+            <button
+                type="button"
+                onClick={onClose}
+                className="absolute top-3 right-3 text-gray-500 hover:text-gray-700 text-2xl font-bold"
+            >
+                &times;
+            </button>
+
+            <div className="max-h-[70vh] overflow-y-auto pr-2"> {/* Added overflow for scroll */}
+                <form onSubmit={handleSubmit}>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
+                        <div className="col-span-1">
                             <label htmlFor="prenom" className="block text-sm font-medium text-gray-700">Prénom</label>
                             <input
                                 type="text"
                                 id="prenom"
                                 value={prenom}
                                 onChange={e => setPrenom(e.target.value)}
-                                placeholder="Prénom"
-                                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                                 required
+                                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                             />
                         </div>
-                        <div>
+                        <div className="col-span-1">
                             <label htmlFor="nom" className="block text-sm font-medium text-gray-700">Nom</label>
                             <input
                                 type="text"
                                 id="nom"
                                 value={nom}
                                 onChange={e => setNom(e.target.value)}
-                                placeholder="Nom"
-                                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                                 required
+                                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                             />
                         </div>
-                        <div>
+                        <div className="col-span-1">
                             <label htmlFor="telephone" className="block text-sm font-medium text-gray-700">Téléphone</label>
                             <input
                                 type="text"
                                 id="telephone"
                                 value={telephone}
                                 onChange={e => setTelephone(e.target.value)}
-                                placeholder="Téléphone"
                                 className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                             />
                         </div>
-                        <div>
+                        <div className="col-span-1">
                             <label htmlFor="email" className="block text-sm font-medium text-gray-700">Email</label>
                             <input
                                 type="email"
                                 id="email"
                                 value={email}
                                 onChange={e => setEmail(e.target.value)}
-                                placeholder="Email"
                                 className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                             />
                         </div>
-                        <div>
+                        <div className="col-span-1">
                             <label htmlFor="statut" className="block text-sm font-medium text-gray-700">Statut</label>
                             <select
                                 id="statut"
@@ -171,10 +180,11 @@ export default function ChauffeurForm({ chauffeur, onClose, onSave }) {
                             >
                                 <option value="actif">Actif</option>
                                 <option value="inactif">Inactif</option>
-                                <option value="en_vacances">En vacances</option>
+                                <option value="en congé">En congé</option>
                             </select>
                         </div>
-                        <div>
+                        <div className="col-span-2 mt-4 text-lg font-semibold text-gray-700">Informations de Naissance</div>
+                        <div className="col-span-1">
                             <label htmlFor="dateNaissance" className="block text-sm font-medium text-gray-700">Date de Naissance</label>
                             <input
                                 type="date"
@@ -184,34 +194,31 @@ export default function ChauffeurForm({ chauffeur, onClose, onSave }) {
                                 className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                             />
                         </div>
-                        <div>
+                        <div className="col-span-1">
                             <label htmlFor="lieuNaissance" className="block text-sm font-medium text-gray-700">Lieu de Naissance</label>
                             <input
                                 type="text"
                                 id="lieuNaissance"
                                 value={lieuNaissance}
                                 onChange={e => setLieuNaissance(e.target.value)}
-                                placeholder="Lieu de naissance"
+                                placeholder="Ville, Pays"
                                 className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                             />
                         </div>
-                    </div>
 
-                    <h4 className="text-lg font-semibold border-b pb-2 mb-4 pt-4">Informations Permis de Conduire</h4>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                            <label htmlFor="permisNumero" className="block text-sm font-medium text-gray-700">Numéro Permis</label>
+                        <div className="col-span-2 mt-4 text-lg font-semibold text-gray-700">Informations Permis de Conduire</div>
+                        <div className="col-span-1">
+                            <label htmlFor="permisNumero" className="block text-sm font-medium text-gray-700">Numéro de Permis</label>
                             <input
                                 type="text"
                                 id="permisNumero"
                                 value={permisNumero}
                                 onChange={e => setPermisNumero(e.target.value)}
-                                placeholder="Numéro du permis"
                                 className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                             />
                         </div>
-                        <div>
-                            <label htmlFor="permisDelivranceDate" className="block text-sm font-medium text-gray-700">Délivré le</label>
+                        <div className="col-span-1">
+                            <label htmlFor="permisDelivranceDate" className="block text-sm font-medium text-gray-700">Date de Délivrance Permis</label>
                             <input
                                 type="date"
                                 id="permisDelivranceDate"
@@ -220,44 +227,42 @@ export default function ChauffeurForm({ chauffeur, onClose, onSave }) {
                                 className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                             />
                         </div>
-                        <div className="md:col-span-2"> {/* This input can span two columns */}
-                            <label htmlFor="permisDelivranceLieu" className="block text-sm font-medium text-gray-700">Délivré par/à</label>
+                        <div className="col-span-2">
+                            <label htmlFor="permisDelivranceLieu" className="block text-sm font-medium text-gray-700">Lieu de Délivrance Permis</label>
                             <input
                                 type="text"
                                 id="permisDelivranceLieu"
                                 value={permisDelivranceLieu}
                                 onChange={e => setPermisDelivranceLieu(e.target.value)}
-                                placeholder="Ville ou autorité de délivrance"
+                                placeholder="Préfecture, Pays"
                                 className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                             />
                         </div>
-                    </div>
 
-                    <h4 className="text-lg font-semibold border-b pb-2 mb-4 pt-4">Adresse</h4>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
+                        <div className="col-span-2 mt-4 text-lg font-semibold text-gray-700">Adresse</div>
+                        <div className="col-span-2">
                             <label htmlFor="adresseRue" className="block text-sm font-medium text-gray-700">Rue</label>
                             <input
                                 type="text"
                                 id="adresseRue"
                                 value={adresseRue}
                                 onChange={e => setAdresseRue(e.target.value)}
-                                placeholder="Numéro et nom de rue"
+                                placeholder="Numéro et rue"
                                 className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                             />
                         </div>
-                        <div>
+                        <div className="col-span-1">
                             <label htmlFor="adresseCp" className="block text-sm font-medium text-gray-700">Code Postal</label>
                             <input
                                 type="text"
                                 id="adresseCp"
                                 value={adresseCp}
                                 onChange={e => setAdresseCp(e.target.value)}
-                                placeholder="Code postal"
+                                placeholder="Code Postal"
                                 className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                             />
                         </div>
-                        <div className="md:col-span-2"> {/* This input can span two columns */}
+                        <div className="col-span-1">
                             <label htmlFor="adresseVille" className="block text-sm font-medium text-gray-700">Ville</label>
                             <input
                                 type="text"
