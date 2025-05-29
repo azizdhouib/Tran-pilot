@@ -8,6 +8,7 @@ import Sidebar from './components/Sidebar';
 import Paiements from './components/Paiements';
 import Auth from './components/Auth'; // Import the Auth component
 import { supabase } from './supabaseClient'; // Import your Supabase client
+import 'leaflet/dist/leaflet.css';
 
 // --- IMPORTANT: Replace [your-project-ref] with your actual Supabase project ID ---
 const SUPABASE_BACKGROUND_IMAGE_URL = 'https://itywlbigsmahjxekhrcw.supabase.co/storage/v1/object/public/chauffeur-media/photo_couverture/3409297.jpg';

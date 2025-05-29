@@ -1,11 +1,15 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../supabaseClient';
+import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+
 
 export default function Vehicules() {
   const [vehicules, setVehicules] = useState([]);
   const [plaque, setPlaque] = useState('');
   const [modele, setModele] = useState('');
   const [statut, setStatut] = useState('Disponible');
+  const [dateControleTechniqueDebut, setDateControleTechniqueDebut] = useState('');
+  const [dateControleTechniqueFin, setDateControleTechniqueFin] = useState('');
   const [isEditing, setIsEditing] = useState(false);
   const [editId, setEditId] = useState(null);
   const [user, setUser] = useState(null); // New state to store the current user
@@ -22,6 +26,44 @@ export default function Vehicules() {
     };
     initializeData();
   }, []);
+
+  useEffect(() => {
+    // Set up interval for checking notifications
+    const notificationInterval = setInterval(() => {
+      checkControleTechniqueNotifications(vehicules);
+    }, 60 * 1000); // Check every minute (adjust as needed)
+
+    // Initial check when vehicules data changes
+    checkControleTechniqueNotifications(vehicules);
+
+    // Clean up interval on component unmount
+    return () => clearInterval(notificationInterval);
+  }, [vehicules]); // Re-run when vehicules data changes
+
+  function checkControleTechniqueNotifications(vehiclesList) {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // Normalize to start of day
+
+    vehiclesList.forEach(vehicule => {
+      if (vehicule.date_controle_technique_fin) {
+        const endDate = new Date(vehicule.date_controle_technique_fin);
+        endDate.setHours(0, 0, 0, 0);
+
+        const diffTime = endDate.getTime() - today.getTime();
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+        if (diffDays <= 7 && diffDays >= 0) {
+          // Notify every day during the last week, if not already notified for today
+          const lastNotifiedKey = `notified_${vehicule.id}_${endDate.toISOString().split('T')[0]}_${today.toISOString().split('T')[0]}`;
+          if (!sessionStorage.getItem(lastNotifiedKey)) {
+            // TODO alert(`Notification: Le contrôle technique du véhicule ${vehicule.plaque} (${vehicule.modele}) expire dans ${diffDays} jour(s) !`);
+            sessionStorage.setItem(lastNotifiedKey, 'true'); // Store notification status for today
+          }
+        }
+      }
+    });
+  }
+
 
   async function fetchVehicules(userId) {
     if (!userId) {
@@ -43,12 +85,19 @@ export default function Vehicules() {
       alert("Vous devez être connecté pour ajouter/modifier un véhicule.");
       return;
     }
-    const newVehicle = { plaque, modele, statut, user_id: user.id }; // Include user_id
+    const vehicleData = {
+      plaque,
+      modele,
+      statut,
+      date_controle_technique_debut: dateControleTechniqueDebut || null, // Ensure empty string becomes null
+      date_controle_technique_fin: dateControleTechniqueFin || null,     // Ensure empty string becomes null
+      user_id: user.id
+    };
 
     if (isEditing && editId) {
       const { error } = await supabase
           .from('vehicules')
-          .update(newVehicle) // Use newVehicle which includes user_id
+          .update(vehicleData)
           .eq('id', editId);
 
       if (!error) {
@@ -61,7 +110,7 @@ export default function Vehicules() {
     } else {
       const { error } = await supabase
           .from('vehicules')
-          .insert(newVehicle); // Use newVehicle
+          .insert(vehicleData);
 
       if (!error) {
         resetForm();
@@ -79,11 +128,10 @@ export default function Vehicules() {
       return;
     }
     if (confirm('Êtes-vous sûr de vouloir supprimer ce véhicule ?')) {
-      // RLS should handle deletion permission based on user_id
       const { error } = await supabase
           .from('vehicules')
           .delete()
-          .eq('id', id); // RLS will ensure it's owned by the user
+          .eq('id', id);
 
       if (!error) {
         alert('Véhicule supprimé avec succès!');
@@ -99,6 +147,8 @@ export default function Vehicules() {
     setPlaque(vehicule.plaque);
     setModele(vehicule.modele);
     setStatut(vehicule.statut);
+    setDateControleTechniqueDebut(vehicule.date_controle_technique_debut || '');
+    setDateControleTechniqueFin(vehicule.date_controle_technique_fin || '');
     setIsEditing(true);
     setEditId(vehicule.id);
   };
@@ -107,6 +157,8 @@ export default function Vehicules() {
     setPlaque('');
     setModele('');
     setStatut('Disponible');
+    setDateControleTechniqueDebut('');
+    setDateControleTechniqueFin('');
     setIsEditing(false);
     setEditId(null);
   };
@@ -155,6 +207,29 @@ export default function Vehicules() {
                 <option value="En maintenance">En maintenance</option>
               </select>
             </div>
+
+            {/* New fields for Contrôle Technique dates */}
+            <div>
+              <label htmlFor="dateControleTechniqueDebut" className="block text-sm font-medium text-gray-700">Début Contrôle Technique</label>
+              <input
+                  type="date"
+                  id="dateControleTechniqueDebut"
+                  value={dateControleTechniqueDebut}
+                  onChange={(e) => setDateControleTechniqueDebut(e.target.value)}
+                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+              />
+            </div>
+            <div>
+              <label htmlFor="dateControleTechniqueFin" className="block text-sm font-medium text-gray-700">Fin Contrôle Technique</label>
+              <input
+                  type="date"
+                  id="dateControleTechniqueFin"
+                  value={dateControleTechniqueFin}
+                  onChange={(e) => setDateControleTechniqueFin(e.target.value)}
+                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+              />
+            </div>
+
             <div className="flex justify-end space-x-3">
               {isEditing && (
                   <button
@@ -182,6 +257,8 @@ export default function Vehicules() {
               <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider sm:px-4 sm:text-sm">Plaque</th>
               <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider sm:px-4 sm:text-sm">Modèle</th>
               <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider sm:px-4 sm:text-sm">Statut</th>
+              <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider sm:px-4 sm:text-sm">Début CT</th>
+              <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider sm:px-4 sm:text-sm">Fin CT</th>
               <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider sm:px-4 sm:text-sm">Actions</th>
             </tr>
             </thead>
@@ -201,6 +278,12 @@ export default function Vehicules() {
                     {v.statut}
                   </span>
                   </td>
+                  <td className="px-2 py-2 text-xs sm:px-4 sm:py-2 sm:text-base">
+                    {v.date_controle_technique_debut ? new Date(v.date_controle_technique_debut).toLocaleDateString() : 'N/A'}
+                  </td>
+                  <td className="px-2 py-2 text-xs sm:px-4 sm:py-2 sm:text-base">
+                    {v.date_controle_technique_fin ? new Date(v.date_controle_technique_fin).toLocaleDateString() : 'N/A'}
+                  </td>
                   <td className="px-2 py-2 flex flex-col gap-2 sm:flex-row sm:gap-2">
                     <button
                         onClick={() => modifierVehicule(v)}
@@ -219,6 +302,25 @@ export default function Vehicules() {
             ))}
             </tbody>
           </table>
+        </div>
+        <div className="mt-10">
+          <h2 className="text-xl font-semibold text-white mb-4 text-center">Carte de localisation</h2>
+          <div className="h-[400px] rounded-lg overflow-hidden shadow-lg">
+            <MapContainer
+                center={[48.8566, 2.3522]} // Coordonnées de Paris
+                zoom={12}
+                scrollWheelZoom={false}
+                style={{ height: '100%', width: '100%' }}
+            >
+              <TileLayer
+                  attribution='&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'
+                  url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+              />
+              <Marker position={[48.8566, 2.3522]}>
+                <Popup>Paris</Popup>
+              </Marker>
+            </MapContainer>
+          </div>
         </div>
       </div>
   );
