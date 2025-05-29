@@ -305,7 +305,7 @@ export default function Vehicules() {
         </div>
         <div className="mt-10">
           <h2 className="text-xl font-semibold text-white mb-4 text-center">Carte de localisation</h2>
-          <div className="h-[400px] rounded-lg overflow-hidden shadow-lg">
+          <div className="h-[400px] rounded-lg overflow-hidden shadow-lg relative z-0">
             <MapContainer
                 center={[48.8566, 2.3522]} // Coordonnées de Paris
                 zoom={12}
